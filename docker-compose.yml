@@ -1,0 +1,33 @@
+services:
+  # Redis server
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+
+  # Django application
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+    environment:
+      DEBUG: 'True'
+      SECRET_KEY: 'your_secret_key'
+      REDIS_URL: 'redis://redis:6379/0'
+      CELERY_BROKER_URL: 'redis://redis:6379/0'
+      CELERY_RESULT_BACKEND: 'redis://redis:6379/0'
+  worker:
+    build: .
+    command: celery -A mlops worker --loglevel=info
+    volumes:
+      - .:/code
+    depends_on:
+      - web
+      - redis
+    environment:
+      CELERY_BROKER_URL: 'redis://redis:6379/0'
+      CELERY_RESULT_BACKEND: 'redis://redis:6379/0'
